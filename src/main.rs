@@ -1,57 +1,48 @@
-#![feature(proc_macro_hygiene, decl_macro)]
+//! A Hello World example application for working with Gotham.
 
-#[macro_use] extern crate rocket;
+extern crate gotham;
+extern crate hyper;
+extern crate mime;
 
-use std::cmp::Ordering;
-use std::io;
-use rand::Rng;
+use gotham::state::State;
 
-#[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+const HELLO_WORLD: &str = "Hello World!";
+
+/// Create a `Handler` which is invoked when responding to a `Request`.
+///
+/// How does a function become a `Handler`?.
+/// We've simply implemented the `Handler` trait, for functions that match the signature used here,
+/// within Gotham itself.
+pub fn say_hello(state: State) -> (State, &'static str) {
+    (state, HELLO_WORLD)
 }
 
-fn main() {
-    let hoge = "aaa";
-    println!("You guessed: {}", hoge);
-
-    let a = [1, 2, 3, 4, 5];
-    let index = 0;
-
-    let element = a[index];
-
-    println!("The value of element is: {}", element);
-    rocket::ignite().mount("/", routes![index]).launch();
+/// Start a server and call the `Handler` we've defined above for each `Request` we receive.
+pub fn main() {
+    let addr = "0.0.0.0:8080";
+    println!("Listening for requests at http://{}", addr);
+    gotham::start(addr, || Ok(say_hello))
 }
 
-fn guess_game() {
-    loop {
-        println!("Guess the number!");
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gotham::test::TestServer;
+    use hyper::StatusCode;
 
-        println!("Please input your guess.");
+    #[test]
+    fn receive_hello_world_response() {
+        let test_server = TestServer::new(|| Ok(say_hello)).unwrap();
+        let response = test_server
+            .client()
+            .get("http://localhost")
+            .perform()
+            .unwrap();
 
-        let mut guess = String::new();
+        assert_eq!(response.status(), StatusCode::OK);
 
-        io::stdin().read_line(&mut guess)
-            .expect("Failed to read line");
-
-        let guess: u32 = match guess.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue,
-        };
-
-        let secret_number = rand::thread_rng().gen_range(1, 11);
-        println!("The secret number is: {}", secret_number);
-
-        match guess.cmp(&secret_number) {
-            Ordering::Less => println!("Too small!"),
-            Ordering::Greater => println!("Too big!"),
-            Ordering::Equal => {
-                println!("You win!");
-                break;
-            }
-        }
-
-        println!("You guessed: {}", guess);
+        let body = response.read_body().unwrap();
+        assert_eq!(&body[..], b"Hello World!");
     }
 }
+

@@ -1,11 +1,13 @@
 [package]
 name = "hello_cargo"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["tkhm <devtkhm@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.7.2"
-rocket = "0.4.2"
+gotham = "0.4.0"
+hyper = "0.13.1"
+mime = "0.3.14"
+
